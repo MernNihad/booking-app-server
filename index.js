@@ -10,6 +10,7 @@ import { HotelModel } from "./models/Hotel.js";
 import { AddtoCart, CartData, OrderProduct, OrderView, deleteProductById, updateProductById } from "./Controllers/AdminCon.js";
 import { GettingKey, PaymentData, PaymentVerify } from "./Controllers/PaymentController.js";
 import Razorpay from 'razorpay';
+import { OrderModel } from "./models/Order.js";
 
 
 const razorpay = new Razorpay({
@@ -33,117 +34,32 @@ const mongooseConnection =async () => {
 
 mongooseConnection()
 
-// app.post("/api/v1/admin/register", async (req, res) => {
-//   try {
-//     const { email, password, name } = req.body;
-
-//     if (!email) {
-//       return res.status(400).send({ message: "Email is required" });
-//     }
-
-//     if (!password) {
-//       return res.status(400).send({ message: "Password is required" });
-//     }
-
-//     if (!name) {
-//       return res.status(400).send({ message: `Name field can not be empty` });
-//     }
-
-//     const isMailExist = await AdminModel.findOne({ email: req.body.email });
-
-//     if (isMailExist) {
-//       return res
-//         .status(409)
-//         .send({ message: "User already exist with this Email Id." });
-//     }
-
-//     const hash = bcrypt.hashSync(req.body.password, 10);
-
-//     const newAdmin = new AdminModel({
-//       email: req.body.email,
-//       password: hash,
-//       name: req.body.name,
-//     });
-
-//     const savedAdmin = await newAdmin.save();
-
-//     return res.status(201).json({ message: "User created", data: savedAdmin });
-//   } catch (error) {
-//     return res
-//       .status(400)
-//       .send({ message: error.message || "internal server error" });
-//   }
-// });
-
-app.post("/api/v1/admin/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email) {
-      return res.status(400).send({ message: "Email is required" });
-    }
-
-    if (!password) {
-      return res.status(400).send({ message: "Password is required" });
-    }
-
-    console.log(req.body);
-    const dat = await AdminModel.find();
-    console.log(dat);
-
-    const isMailExist = await AdminModel.findOne({ email: req.body.email });
-
-    console.log(isMailExist);
-    if (isMailExist) {
-      // const isMatchPassword = await bcrypt.compare(req.body.password, isMailExist.password);
-      let isMatchPassword = bcrypt.compareSync(
-        req.body.password,
-        isMailExist.password
-      );
-
-      console.log(isMatchPassword);
-      if (!isMatchPassword) {
-        return res.status(401).send({ message: "Invalid Password!" });
-      } else {
-        // create token
-        const token = jwt.sign({ _id: isMailExist._id }, "example", {
-          expiresIn: "30 days",
-        });
-
-        return res
-          .status(200)
-          .send({ message: "Admin logged", data: { token, user: isMailExist } });
+// orders get
+app.get("/api/v1/orders/:id", async (req, res) => {
+  try{
+    const response = await OrderModel.aggregate([
+      {
+        $match:{
+          userid:new mongoose.Types.ObjectId(req.params.id)
+        }
+      },
+      {
+        $lookup:{
+          localField:"productid",
+          foreignField:"_id",
+          from:"products",
+          as:"productInfo"
+        }
       }
-    } else {
-      return res.status(409).send({ message: "Admin not exist." });
-    }
-  } catch (error) {
-    return res
-      .status(400)
-      .send({ message: error.message || "internal server error" });
+    ])
+
+    res.status(200).json(response)
+  }catch(error) {
+       console.log(error);
   }
-});
+}) 
+// ---------------------------------
 
-// app.get("/api/v1/admin/profile", async (req, res) => {
-//   if (!req.headers.authorization) {
-//     return res.status(401).json({ message: "No Token Provided" });
-//   }
-
-//   var token = req.headers.authorization;
-
-//   var decoded = jwt.verify(token, "example");
-
-//   if (!decoded) {
-//     return res.status(401).json({ message: "Unauthorized Access" });
-//   }
-
-//   const isUser = await AdminModel.findById(decoded._id);
-
-//   if (!isUser) {
-//     return res.status(404).json({ message: "User Not Found" });
-//   }
-//   return res.status(200).send({ message: "profile", data: { user: isUser } });
-// });
 
 app.post("/api/v1/admin/product/add-product", async (req, res) => {
   try {
@@ -307,6 +223,8 @@ app.get("/api/v1/user/", async (req, res) => {
   }
 }) // For Data Fetch
 
+
+
 app.post("/api/v1/hotel/submit", async (req, res) => {
   try {
     const { email, location, name, number } = req.body;
@@ -377,6 +295,128 @@ app.get('/api/cartdata',CartData)
 app.post('/checkout', PaymentData )
 app.post('/paymentverification', PaymentVerify)
 app.get('/api/getkey', GettingKey)
+
+
+
+
+// ------------admin register--------------------
+app.post("/api/v1/admin/register", async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    if (!email) {
+      return res.status(400).send({ message: "Email is required" });
+    }
+
+    if (!password) {
+      return res.status(400).send({ message: "Password is required" });
+    }
+
+    if (!name) {
+      return res.status(400).send({ message: `Name field can not be empty` });
+    }
+
+    const isMailExist = await AdminModel.findOne({ email: req.body.email });
+
+    if (isMailExist) {
+      return res
+        .status(409)
+        .send({ message: "User already exist with this Email Id." });
+    }
+
+    const hash = bcrypt.hashSync(req.body.password, 10);
+
+    const newUser = new AdminModel({
+      email: req.body.email,
+      password: hash,
+      name: req.body.name,
+    });
+
+    const savedUser = await newUser.save();
+
+    return res.status(201).json({ message: "User created", data: savedUser });
+  } catch (error) {
+    return res
+      .status(400)
+      .send({ message: error.message || "internal server error" });
+  }
+});
+// ----------------------------------------------
+
+
+
+
+// --------------admin login -----------------
+app.post("/api/v1/admin/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email) {
+      return res.status(400).send({ message: "Email is required" });
+    }
+
+    if (!password) {
+      return res.status(400).send({ message: "Password is required" });
+    }
+
+    const isMailExist = await AdminModel.findOne({email:req.body.email});
+
+
+    if (isMailExist) {
+      // const isMatchPassword = await bcrypt.compare(req.body.password, isMailExist.password);
+      let isMatchPassword = bcrypt.compareSync(
+        req.body.password,
+        isMailExist.password
+      );
+
+      if (!isMatchPassword) {
+        return res.status(401).send({ message: "Invalid Password!" });
+      } else {
+        // create token
+        const token = jwt.sign({ _id: isMailExist._id }, "example", {
+          expiresIn: "30 days",
+        });
+
+        return res
+          .status(200)
+          .send({ message: "Admin logged", data: { token, user: isMailExist } });
+      }
+    } else {
+      return res.status(409).send({ message: "Admin not exist." });
+    }
+  } catch (error) {
+    return res
+      .status(400)
+      .send({ message: error.message || "internal server error" });
+  }
+});
+// --------------------------------------------
+
+
+
+
+
+// --------------user information -----------------
+app.get("/api/v1/user/:id", async (req, res) => {
+  try {
+ 
+    const isMailExist = await UserModel.findById(req.params.id);
+
+
+
+  
+        return res
+          .status(200)
+          .send({ message: "Admin logged", data: isMailExist });
+      
+ 
+  } catch (error) {
+    return res
+      .status(400)
+      .send({ message: error.message || "internal server error" });
+  }
+});
+// --------------------------------------------
 
 app.listen(8080, () => {
   mongooseConnection();

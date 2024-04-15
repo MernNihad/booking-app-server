@@ -46,25 +46,22 @@ export const OrderProduct = async (req,res) => {
     // console.log(req.params.id);
     try {
     
-        if (!req.headers.authorization) {
-          return res.status(401).json({ message: "No Token Provided" });
-        }
+        // if (!req.headers.authorization) {
+        //   return res.status(401).json({ message: "No Token Provided" });
+        // }
     
-        var token = req.headers.authorization.split(" ")[1];
+        // var token = req.headers.authorization.split(" ")[1];
    
-        jwt.verify(token,'example',async function(err,decoded){
-            console.log(decoded,'decoded');
-            console.log(err,'error');
-            if(err){
-                return res.status(200).send({ message: err.message || "addd success" });
-            }
-            const dat = new OrderModel({productid:req.params.id,userid:decoded._id})
-            console.log(dat,'datt');
+        // jwt.verify(token,'example',async function(err,decoded){
+            // console.log(decoded,'decoded');
+            // console.log(err,'error');
+            // if(err){
+            //     return res.status(200).send({ message: err.message || "addd success" });
+            // }
+            const dat = new OrderModel({productid:req.params.id,userid:req.body.userid})
             let response=await dat.save()
-            console.log(response,'ree');
-            
-            return res.status(200).send({ message: "addd success" });
-          })
+            return res.status(200).send({ message: "order success",data:response });
+          // })
      
        
         
